@@ -1,0 +1,512 @@
+# ----------------------------------------------------------------------
+# .htaccess
+#
+# In Apache HTTP servers, .htaccess (hypertext access) is the 
+# configuration file that allows for web server configuration.
+#
+# This document includes a number of best practice server rules for 
+# making web pages fast and secure. Adapted from HTML5 Boilerplate.
+# http://html5boilerplate.com/
+# ----------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------
+# CORS-enabled images (@crossorigin)
+# ----------------------------------------------------------------------
+
+# Send CORS headers if browsers request them; enabled by default for images.
+# developer.mozilla.org/en/CORS_Enabled_Image
+# blog.chromium.org/2011/07/using-cross-domain-images-in-webgl-and.html
+# hacks.mozilla.org/2011/11/using-cors-to-load-webgl-textures-from-cross-domain-images/
+# wiki.mozilla.org/Security/Reviews/crossoriginAttribute
+
+<IfModule mod_setenvif.c>
+  <IfModule mod_headers.c>
+    # mod_headers, y u no match by Content-Type?!
+    <FilesMatch "\.(gif|ico|jpe?g|png|svg|svgz|webp)$">
+      SetEnvIf Origin ":" IS_CORS
+      Header set Access-Control-Allow-Origin "*" env=IS_CORS
+    </FilesMatch>
+  </IfModule>
+</IfModule>
+
+
+
+
+
+# ----------------------------------------------------------------------
+# Webfont access
+# ----------------------------------------------------------------------
+
+# Allow access from all domains for webfonts.
+# Alternatively you could only whitelist your
+# subdomains like "subdomain.example.com".
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(eot|font.css|otf|ttc|ttf|woff)$">
+    Header set Access-Control-Allow-Origin "*"
+  </FilesMatch>
+</IfModule>
+
+
+
+
+
+# ----------------------------------------------------------------------
+# Proper MIME type for all files
+# ----------------------------------------------------------------------
+
+# JavaScript
+#   Normalize to standard type (it's sniffed in IE anyways)
+#   tools.ietf.org/html/rfc4329#section-7.2
+AddType application/javascript         js jsonp
+AddType application/json               json
+
+# Audio
+AddType audio/mp4                      m4a f4a f4b
+AddType audio/ogg                      oga ogg
+
+# Video
+AddType video/mp4                      mp4 m4v f4v f4p
+AddType video/ogg                      ogv
+AddType video/webm                     webm
+AddType video/x-flv                    flv
+
+# SVG
+#   Required for svg webfonts on iPad
+#   twitter.com/FontSquirrel/status/14855840545
+AddType     image/svg+xml              svg svgz
+AddEncoding gzip                       svgz
+
+# Webfonts
+AddType application/vnd.ms-fontobject  eot
+AddType application/x-font-ttf         ttf ttc
+AddType application/x-font-woff        woff
+AddType font/opentype                  otf
+
+# Assorted types
+AddType application/octet-stream            safariextz
+AddType application/x-chrome-extension      crx
+AddType application/x-opera-extension       oex
+AddType application/x-shockwave-flash       swf
+AddType application/x-web-app-manifest+json webapp
+AddType application/x-xpinstall             xpi
+AddType application/xml                     rss atom xml rdf
+AddType image/webp                          webp
+AddType image/x-icon                        ico
+AddType text/cache-manifest                 appcache manifest
+AddType text/vtt                            vtt
+AddType text/x-component                    htc
+AddType text/x-vcard                        vcf
+
+
+
+
+
+# ----------------------------------------------------------------------
+# Gzip compression
+# ----------------------------------------------------------------------
+
+<IfModule mod_deflate.c>
+
+  # Force deflate for mangled headers developer.yahoo.com/blogs/ydn/posts/2010/12/pushing-beyond-gzipping/
+  <IfModule mod_setenvif.c>
+    <IfModule mod_headers.c>
+      SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|deflate)\s*,?\s*)+|[X~-]{4,13}$ HAVE_Accept-Encoding
+      RequestHeader append Accept-Encoding "gzip,deflate" env=HAVE_Accept-Encoding
+    </IfModule>
+  </IfModule>
+
+  # Compress all output labeled with one of the following MIME-types
+  # (for Apache versions below 2.3.7, you don't need to enable `mod_filter`
+  # and can remove the `<IfModule mod_filter.c>` and `</IfModule>` lines as
+  # `AddOutputFilterByType` is still in the core directives)
+  <IfModule mod_filter.c>
+    AddOutputFilterByType DEFLATE application/atom+xml \
+                                  application/javascript \
+                                  application/json \
+                                  application/rss+xml \
+                                  application/vnd.ms-fontobject \
+                                  application/x-font-ttf \
+                                  application/xhtml+xml \
+                                  application/xml \
+                                  font/opentype \
+                                  image/svg+xml \
+                                  image/x-icon \
+                                  text/css \
+                                  text/html \
+                                  text/plain \
+                                  text/x-component \
+                                  text/xml
+  </IfModule>
+
+</IfModule>
+
+
+
+
+
+# ----------------------------------------------------------------------
+# Expires headers (for better cache control)
+# ----------------------------------------------------------------------
+
+# These are pretty far-future expires headers.
+# They assume you control versioning with filename-based cache busting
+# Additionally, consider that outdated proxies may miscache
+#   www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/
+
+# If you don't use filenames to version, lower the CSS and JS to something like
+# "access plus 1 week".
+
+<IfModule mod_expires.c>
+  ExpiresActive on
+
+# Perhaps better to whitelist expires rules? Perhaps.
+  ExpiresDefault                          "access plus 1 month"
+
+# cache.appcache needs re-requests in FF 3.6 (thanks Remy ~Introducing HTML5)
+  ExpiresByType text/cache-manifest       "access plus 0 seconds"
+
+# Your document html
+  ExpiresByType text/html                 "access plus 0 seconds"
+
+# Data
+  ExpiresByType application/json          "access plus 0 seconds"
+  ExpiresByType application/xml           "access plus 0 seconds"
+  ExpiresByType text/xml                  "access plus 0 seconds"
+
+# Feed
+  ExpiresByType application/atom+xml      "access plus 1 hour"
+  ExpiresByType application/rss+xml       "access plus 1 hour"
+
+# Favicon (cannot be renamed)
+  ExpiresByType image/x-icon              "access plus 1 week"
+
+# Media: images, video, audio
+  ExpiresByType audio/ogg                 "access plus 1 month"
+  ExpiresByType image/gif                 "access plus 1 month"
+  ExpiresByType image/jpeg                "access plus 1 month"
+  ExpiresByType image/png                 "access plus 1 month"
+  ExpiresByType video/mp4                 "access plus 1 month"
+  ExpiresByType video/ogg                 "access plus 1 month"
+  ExpiresByType video/webm                "access plus 1 month"
+
+# HTC files  (css3pie)
+  ExpiresByType text/x-component          "access plus 1 month"
+
+# Webfonts
+  ExpiresByType application/vnd.ms-fontobject "access plus 1 month"
+  ExpiresByType application/x-font-ttf    "access plus 1 month"
+  ExpiresByType application/x-font-woff   "access plus 1 month"
+  ExpiresByType font/opentype             "access plus 1 month"
+  ExpiresByType image/svg+xml             "access plus 1 month"
+
+# CSS and JavaScript
+  ExpiresByType application/javascript    "access plus 1 year"
+  ExpiresByType text/css                  "access plus 1 year"
+
+</IfModule>
+
+# ----------------------------------------------------------------------
+# Built-in filename-based cache busting
+# ----------------------------------------------------------------------
+# <IfModule mod_rewrite.c>
+#   RewriteCond %{REQUEST_FILENAME} !-f
+#   RewriteCond %{REQUEST_FILENAME} !-d
+#   RewriteRule ^(.+)\.(\d+)\.(js|css|png|jpg|gif)$ $1.$3 [L]
+# </IfModule>
+
+
+
+
+
+# ----------------------------------------------------------------------
+# Prevent mobile network providers from modifying your site
+# ----------------------------------------------------------------------
+
+# The following header prevents modification of your code over 3G on some
+# European providers.
+# This is the official 'bypass' suggested by O2 in the UK.
+
+<IfModule mod_headers.c>
+Header set Cache-Control "no-transform"
+</IfModule>
+
+
+
+
+
+# ----------------------------------------------------------------------
+# ETag removal
+# ----------------------------------------------------------------------
+
+# FileETag None is not enough for every server.
+<IfModule mod_headers.c>
+  Header unset ETag
+</IfModule>
+
+# Since we're sending far-future expires, we don't need ETags for
+# static content.
+#   developer.yahoo.com/performance/rules.html#etags
+FileETag None
+
+
+
+
+
+# ----------------------------------------------------------------------
+# UTF-8 encoding
+# ----------------------------------------------------------------------
+
+# Use UTF-8 encoding for anything served text/plain or text/html
+AddDefaultCharset utf-8
+
+# Force UTF-8 for a number of file formats
+AddCharset utf-8 .atom .css .js .json .rss .vtt .xml
+
+Options All -Indexes
+RewriteEngine on
+
+# Block Bad Bots & Scrapers
+SetEnvIfNoCase User-Agent "Aboundex" bad_bot
+SetEnvIfNoCase User-Agent "80legs" bad_bot
+SetEnvIfNoCase User-Agent "360Spider" bad_bot
+SetEnvIfNoCase User-Agent "^Java" bad_bot
+SetEnvIfNoCase User-Agent "^Cogentbot" bad_bot
+SetEnvIfNoCase User-Agent "^Alexibot" bad_bot
+SetEnvIfNoCase User-Agent "^asterias" bad_bot
+SetEnvIfNoCase User-Agent "^attach" bad_bot
+SetEnvIfNoCase User-Agent "^BackDoorBot" bad_bot
+SetEnvIfNoCase User-Agent "^BackWeb" bad_bot
+SetEnvIfNoCase User-Agent "Bandit" bad_bot
+SetEnvIfNoCase User-Agent "^BatchFTP" bad_bot
+SetEnvIfNoCase User-Agent "^Bigfoot" bad_bot
+SetEnvIfNoCase User-Agent "^Black.Hole" bad_bot
+SetEnvIfNoCase User-Agent "^BlackWidow" bad_bot
+SetEnvIfNoCase User-Agent "^BlowFish" bad_bot
+SetEnvIfNoCase User-Agent "^BotALot" bad_bot
+SetEnvIfNoCase User-Agent "Buddy" bad_bot
+SetEnvIfNoCase User-Agent "^BuiltBotTough" bad_bot
+SetEnvIfNoCase User-Agent "^Bullseye" bad_bot
+SetEnvIfNoCase User-Agent "^BunnySlippers" bad_bot
+SetEnvIfNoCase User-Agent "^Cegbfeieh" bad_bot
+SetEnvIfNoCase User-Agent "^CheeseBot" bad_bot
+SetEnvIfNoCase User-Agent "^CherryPicker" bad_bot
+SetEnvIfNoCase User-Agent "^ChinaClaw" bad_bot
+SetEnvIfNoCase User-Agent "Collector" bad_bot
+SetEnvIfNoCase User-Agent "Copier" bad_bot
+SetEnvIfNoCase User-Agent "^CopyRightCheck" bad_bot
+SetEnvIfNoCase User-Agent "^cosmos" bad_bot
+SetEnvIfNoCase User-Agent "^Crescent" bad_bot
+SetEnvIfNoCase User-Agent "^Custo" bad_bot
+SetEnvIfNoCase User-Agent "^AIBOT" bad_bot
+SetEnvIfNoCase User-Agent "^DISCo" bad_bot
+SetEnvIfNoCase User-Agent "^DIIbot" bad_bot
+SetEnvIfNoCase User-Agent "^DittoSpyder" bad_bot
+SetEnvIfNoCase User-Agent "^Download\ Demon" bad_bot
+SetEnvIfNoCase User-Agent "^Download\ Devil" bad_bot
+SetEnvIfNoCase User-Agent "^Download\ Wonder" bad_bot
+SetEnvIfNoCase User-Agent "^dragonfly" bad_bot
+SetEnvIfNoCase User-Agent "^Drip" bad_bot
+SetEnvIfNoCase User-Agent "^eCatch" bad_bot
+SetEnvIfNoCase User-Agent "^EasyDL" bad_bot
+SetEnvIfNoCase User-Agent "^ebingbong" bad_bot
+SetEnvIfNoCase User-Agent "^EirGrabber" bad_bot
+SetEnvIfNoCase User-Agent "^EmailCollector" bad_bot
+SetEnvIfNoCase User-Agent "^EmailSiphon" bad_bot
+SetEnvIfNoCase User-Agent "^EmailWolf" bad_bot
+SetEnvIfNoCase User-Agent "^EroCrawler" bad_bot
+SetEnvIfNoCase User-Agent "^Exabot" bad_bot
+SetEnvIfNoCase User-Agent "^Express\ WebPictures" bad_bot
+SetEnvIfNoCase User-Agent "Extractor" bad_bot
+SetEnvIfNoCase User-Agent "^EyeNetIE" bad_bot
+SetEnvIfNoCase User-Agent "^Foobot" bad_bot
+SetEnvIfNoCase User-Agent "^flunky" bad_bot
+SetEnvIfNoCase User-Agent "^FrontPage" bad_bot
+SetEnvIfNoCase User-Agent "^Go-Ahead-Got-It" bad_bot
+SetEnvIfNoCase User-Agent "^gotit" bad_bot
+SetEnvIfNoCase User-Agent "^GrabNet" bad_bot
+SetEnvIfNoCase User-Agent "^Grafula" bad_bot
+SetEnvIfNoCase User-Agent "^Harvest" bad_bot
+SetEnvIfNoCase User-Agent "^hloader" bad_bot
+SetEnvIfNoCase User-Agent "^HMView" bad_bot
+SetEnvIfNoCase User-Agent "^HTTrack" bad_bot
+SetEnvIfNoCase User-Agent "^humanlinks" bad_bot
+SetEnvIfNoCase User-Agent "^IlseBot" bad_bot
+SetEnvIfNoCase User-Agent "^Image\ Stripper" bad_bot
+SetEnvIfNoCase User-Agent "^Image\ Sucker" bad_bot
+SetEnvIfNoCase User-Agent "Indy\ Library" bad_bot
+SetEnvIfNoCase User-Agent "^InfoNaviRobot" bad_bot
+SetEnvIfNoCase User-Agent "^InfoTekies" bad_bot
+SetEnvIfNoCase User-Agent "^Intelliseek" bad_bot
+SetEnvIfNoCase User-Agent "^InterGET" bad_bot
+SetEnvIfNoCase User-Agent "^Internet\ Ninja" bad_bot
+SetEnvIfNoCase User-Agent "^Iria" bad_bot
+SetEnvIfNoCase User-Agent "^Jakarta" bad_bot
+SetEnvIfNoCase User-Agent "^JennyBot" bad_bot
+SetEnvIfNoCase User-Agent "^JetCar" bad_bot
+SetEnvIfNoCase User-Agent "^JOC" bad_bot
+SetEnvIfNoCase User-Agent "^JustView" bad_bot
+SetEnvIfNoCase User-Agent "^Jyxobot" bad_bot
+SetEnvIfNoCase User-Agent "^Kenjin.Spider" bad_bot
+SetEnvIfNoCase User-Agent "^Keyword.Density" bad_bot
+SetEnvIfNoCase User-Agent "^larbin" bad_bot
+SetEnvIfNoCase User-Agent "^LexiBot" bad_bot
+SetEnvIfNoCase User-Agent "^lftp" bad_bot
+SetEnvIfNoCase User-Agent "^libWeb/clsHTTP" bad_bot
+SetEnvIfNoCase User-Agent "^likse" bad_bot
+SetEnvIfNoCase User-Agent "^LinkextractorPro" bad_bot
+SetEnvIfNoCase User-Agent "^LinkScan/8.1a.Unix" bad_bot
+SetEnvIfNoCase User-Agent "^LNSpiderguy" bad_bot
+SetEnvIfNoCase User-Agent "^LinkWalker" bad_bot
+SetEnvIfNoCase User-Agent "^lwp-trivial" bad_bot
+SetEnvIfNoCase User-Agent "^LWP::Simple" bad_bot
+SetEnvIfNoCase User-Agent "^Magnet" bad_bot
+SetEnvIfNoCase User-Agent "^Mag-Net" bad_bot
+SetEnvIfNoCase User-Agent "^MarkWatch" bad_bot
+SetEnvIfNoCase User-Agent "^Mass\ Downloader" bad_bot
+SetEnvIfNoCase User-Agent "^Mata.Hari" bad_bot
+SetEnvIfNoCase User-Agent "^Memo" bad_bot
+SetEnvIfNoCase User-Agent "^Microsoft.URL" bad_bot
+SetEnvIfNoCase User-Agent "^Microsoft\ URL\ Control" bad_bot
+SetEnvIfNoCase User-Agent "^MIDown\ tool" bad_bot
+SetEnvIfNoCase User-Agent "^MIIxpc" bad_bot
+SetEnvIfNoCase User-Agent "^Mirror" bad_bot
+SetEnvIfNoCase User-Agent "^Missigua\ Locator" bad_bot
+SetEnvIfNoCase User-Agent "^Mister\ PiX" bad_bot
+SetEnvIfNoCase User-Agent "^moget" bad_bot
+SetEnvIfNoCase User-Agent "^Mozilla/3.Mozilla/2.01" bad_bot
+SetEnvIfNoCase User-Agent "^Mozilla.*NEWT" bad_bot
+SetEnvIfNoCase User-Agent "^NAMEPROTECT" bad_bot
+SetEnvIfNoCase User-Agent "^Navroad" bad_bot
+SetEnvIfNoCase User-Agent "^NearSite" bad_bot
+SetEnvIfNoCase User-Agent "^NetAnts" bad_bot
+SetEnvIfNoCase User-Agent "^Netcraft" bad_bot
+SetEnvIfNoCase User-Agent "^NetMechanic" bad_bot
+SetEnvIfNoCase User-Agent "^NetSpider" bad_bot
+SetEnvIfNoCase User-Agent "^Net\ Vampire" bad_bot
+SetEnvIfNoCase User-Agent "^NetZIP" bad_bot
+SetEnvIfNoCase User-Agent "^NextGenSearchBot" bad_bot
+SetEnvIfNoCase User-Agent "^NG" bad_bot
+SetEnvIfNoCase User-Agent "^NICErsPRO" bad_bot
+SetEnvIfNoCase User-Agent "^niki-bot" bad_bot
+SetEnvIfNoCase User-Agent "^NimbleCrawler" bad_bot
+SetEnvIfNoCase User-Agent "^Ninja" bad_bot
+SetEnvIfNoCase User-Agent "^NPbot" bad_bot
+SetEnvIfNoCase User-Agent "^Octopus" bad_bot
+SetEnvIfNoCase User-Agent "^Offline\ Explorer" bad_bot
+SetEnvIfNoCase User-Agent "^Offline\ Navigator" bad_bot
+SetEnvIfNoCase User-Agent "^Openfind" bad_bot
+SetEnvIfNoCase User-Agent "^OutfoxBot" bad_bot
+SetEnvIfNoCase User-Agent "^PageGrabber" bad_bot
+SetEnvIfNoCase User-Agent "^Papa\ Foto" bad_bot
+SetEnvIfNoCase User-Agent "^pavuk" bad_bot
+SetEnvIfNoCase User-Agent "^pcBrowser" bad_bot
+SetEnvIfNoCase User-Agent "^PHP\ version\ tracker" bad_bot
+SetEnvIfNoCase User-Agent "^Pockey" bad_bot
+SetEnvIfNoCase User-Agent "^ProPowerBot/2.14" bad_bot
+SetEnvIfNoCase User-Agent "^ProWebWalker" bad_bot
+SetEnvIfNoCase User-Agent "^psbot" bad_bot
+SetEnvIfNoCase User-Agent "^Pump" bad_bot
+SetEnvIfNoCase User-Agent "^QueryN.Metasearch" bad_bot
+SetEnvIfNoCase User-Agent "^RealDownload" bad_bot
+SetEnvIfNoCase User-Agent "Reaper" bad_bot
+SetEnvIfNoCase User-Agent "Recorder" bad_bot
+SetEnvIfNoCase User-Agent "^ReGet" bad_bot
+SetEnvIfNoCase User-Agent "^RepoMonkey" bad_bot
+SetEnvIfNoCase User-Agent "^RMA" bad_bot
+SetEnvIfNoCase User-Agent "Siphon" bad_bot
+SetEnvIfNoCase User-Agent "^SiteSnagger" bad_bot
+SetEnvIfNoCase User-Agent "^SlySearch" bad_bot
+SetEnvIfNoCase User-Agent "^SmartDownload" bad_bot
+SetEnvIfNoCase User-Agent "^Snake" bad_bot
+SetEnvIfNoCase User-Agent "^Snapbot" bad_bot
+SetEnvIfNoCase User-Agent "^Snoopy" bad_bot
+SetEnvIfNoCase User-Agent "^sogou" bad_bot
+SetEnvIfNoCase User-Agent "^SpaceBison" bad_bot
+SetEnvIfNoCase User-Agent "^SpankBot" bad_bot
+SetEnvIfNoCase User-Agent "^spanner" bad_bot
+SetEnvIfNoCase User-Agent "^Sqworm" bad_bot
+SetEnvIfNoCase User-Agent "Stripper" bad_bot
+SetEnvIfNoCase User-Agent "Sucker" bad_bot
+SetEnvIfNoCase User-Agent "^SuperBot" bad_bot
+SetEnvIfNoCase User-Agent "^SuperHTTP" bad_bot
+SetEnvIfNoCase User-Agent "^Surfbot" bad_bot
+SetEnvIfNoCase User-Agent "^suzuran" bad_bot
+SetEnvIfNoCase User-Agent "^Szukacz/1.4" bad_bot
+SetEnvIfNoCase User-Agent "^tAkeOut" bad_bot
+SetEnvIfNoCase User-Agent "^Teleport" bad_bot
+SetEnvIfNoCase User-Agent "^Telesoft" bad_bot
+SetEnvIfNoCase User-Agent "^TurnitinBot/1.5" bad_bot
+SetEnvIfNoCase User-Agent "^The.Intraformant" bad_bot
+SetEnvIfNoCase User-Agent "^TheNomad" bad_bot
+SetEnvIfNoCase User-Agent "^TightTwatBot" bad_bot
+SetEnvIfNoCase User-Agent "^Titan" bad_bot
+SetEnvIfNoCase User-Agent "^True_Robot" bad_bot
+SetEnvIfNoCase User-Agent "^turingos" bad_bot
+SetEnvIfNoCase User-Agent "^TurnitinBot" bad_bot
+SetEnvIfNoCase User-Agent "^URLy.Warning" bad_bot
+SetEnvIfNoCase User-Agent "^Vacuum" bad_bot
+SetEnvIfNoCase User-Agent "^VCI" bad_bot
+SetEnvIfNoCase User-Agent "^VoidEYE" bad_bot
+SetEnvIfNoCase User-Agent "^Web\ Image\ Collector" bad_bot
+SetEnvIfNoCase User-Agent "^Web\ Sucker" bad_bot
+SetEnvIfNoCase User-Agent "^WebAuto" bad_bot
+SetEnvIfNoCase User-Agent "^WebBandit" bad_bot
+SetEnvIfNoCase User-Agent "^Webclipping.com" bad_bot
+SetEnvIfNoCase User-Agent "^WebCopier" bad_bot
+SetEnvIfNoCase User-Agent "^WebEMailExtrac.*" bad_bot
+SetEnvIfNoCase User-Agent "^WebEnhancer" bad_bot
+SetEnvIfNoCase User-Agent "^WebFetch" bad_bot
+SetEnvIfNoCase User-Agent "^WebGo\ IS" bad_bot
+SetEnvIfNoCase User-Agent "^Web.Image.Collector" bad_bot
+SetEnvIfNoCase User-Agent "^WebLeacher" bad_bot
+SetEnvIfNoCase User-Agent "^WebmasterWorldForumBot" bad_bot
+SetEnvIfNoCase User-Agent "^WebReaper" bad_bot
+SetEnvIfNoCase User-Agent "^WebSauger" bad_bot
+SetEnvIfNoCase User-Agent "^Website\ eXtractor" bad_bot
+SetEnvIfNoCase User-Agent "^Website\ Quester" bad_bot
+SetEnvIfNoCase User-Agent "^Webster" bad_bot
+SetEnvIfNoCase User-Agent "^WebStripper" bad_bot
+SetEnvIfNoCase User-Agent "^WebWhacker" bad_bot
+SetEnvIfNoCase User-Agent "^WebZIP" bad_bot
+SetEnvIfNoCase User-Agent "Whacker" bad_bot
+SetEnvIfNoCase User-Agent "^Widow" bad_bot
+SetEnvIfNoCase User-Agent "^WISENutbot" bad_bot
+SetEnvIfNoCase User-Agent "^WWWOFFLE" bad_bot
+SetEnvIfNoCase User-Agent "^WWW-Collector-E" bad_bot
+SetEnvIfNoCase User-Agent "^Xaldon" bad_bot
+SetEnvIfNoCase User-Agent "^Xenu" bad_bot
+SetEnvIfNoCase User-Agent "^Zeus" bad_bot
+SetEnvIfNoCase User-Agent "ZmEu" bad_bot
+SetEnvIfNoCase User-Agent "^Zyborg" bad_bot
+
+# Vulnerability Scanners
+SetEnvIfNoCase User-Agent "Acunetix" bad_bot
+SetEnvIfNoCase User-Agent "FHscan" bad_bot
+
+# Aggressive Chinese Search Engine
+SetEnvIfNoCase User-Agent "Baiduspider" bad_bot
+
+# Aggressive Russian Search Engine
+SetEnvIfNoCase User-Agent "Yandex" bad_bot
+
+
+<Limit GET POST HEAD>
+Order Allow,Deny
+Allow from all
+
+# Cyveillance
+deny from 38.100.19.8/29
+deny from 38.100.21.0/24
+deny from 38.100.41.64/26
+deny from 38.105.71.0/25
+deny from 38.105.83.0/27
+deny from 38.112.21.140/30
+deny from 38.118.42.32/29
+deny from 65.213.208.128/27
+deny from 65.222.176.96/27
+deny from 65.222.185.72/29
+
+Deny from env=bad_bot
+</Limit>
